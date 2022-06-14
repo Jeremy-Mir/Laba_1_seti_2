@@ -8,8 +8,8 @@ namespace Laba_1_seti_2
 {
     class Program
     { // адрес и порт сервера, к которому будем подключаться
-        static int port = 8005; // порт сервера
-        static string address = "192.168.0.105"; // адрес сервера
+        static int port = 1337; // порт сервера
+        static string address = "vps2.iskiserver.ru"; // адрес сервера
 
         
 
@@ -37,12 +37,11 @@ namespace Laba_1_seti_2
 
                 return crc;
             }
-            try
-            {
-                IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(address), port);
+            
+               // IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(address), port);
 
                 Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.Connect(ipPoint);
+                socket.Connect(address, port);
                  Console.Write("Введите сообщение(до 252 символов):");
                  string message = Console.ReadLine();
                 byte[] messageByte = new byte[252];
@@ -54,19 +53,10 @@ namespace Laba_1_seti_2
                 }
                 //messageByte = Encoding.Unicode.GetBytes(message);
                 byte[] adres = new byte[256] ;
-                adres[0] = (byte)11;
-                adres[1] = (byte)21;
-                for (int j=2;j < 254;j++)
-                {
-                    
-                    adres[j] = messageByte[j - 2];
-                }
                
-                byte HighByte = (byte)(ModRTU_CRC(adres, 256) >> 8);
-                byte LowByte = (byte)(ModRTU_CRC(adres, 256) & 0xFF);
-                adres[254] = HighByte;
-                adres[255] = LowByte;
-                
+           
+
+
                 /*for (int i= 0; i < messageByte.Length; i++)
                 {
                     
@@ -74,35 +64,42 @@ namespace Laba_1_seti_2
                     Console.WriteLine("i = " + i);
                 }*/
 
-
-                for(int i=0; i < 50; i++)
+                int n = 11;
+                for (int i=0; i < 14000; i++)
                 {
-                    socket.Send(adres);
-                    Thread.Sleep(10);
-                }
                 
+                n++;
+                    adres[0] = (byte)n;
+                    adres[1] = (byte)21;
+                    for (int j = 2; j < 254; j++)
+                    {
 
-                // получаем ответ
-                byte[] data = new byte[256]; // буфер для ответа
-                StringBuilder builder = new StringBuilder();
-                int bytes = 0; // количество полученных байт
+                        adres[j] = messageByte[j - 2];
+                    }
+                adres[254] = 0;
+                adres[255] = 0;
+                byte HighByte = (byte)(ModRTU_CRC(adres, 256) >> 8);
+                     byte LowByte = (byte)(ModRTU_CRC(adres, 256) & 0xFF);
+                    adres[254] = HighByte;
+                    adres[255] = LowByte;
+                // Console.WriteLine(HighByte);
+                // Console.WriteLine(LowByte);
+                Thread.Sleep(3);
+                    socket.Send(adres);
+                Console.WriteLine(i);
+                //Console.WriteLine(HighByte);
+                //Console.WriteLine(LowByte);
 
-                do
-                {
-                    bytes = socket.Receive(data, data.Length, 0);
-                    builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
-                }
-                while (socket.Available > 0);
-                Console.WriteLine("ответ сервера: " + builder.ToString());
+            }
 
-                // закрываем сокет
+
+
+            // закрываем сокет
+            Environment.Exit(0);
                 socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            
+            
             Console.Read();
         }
     }
