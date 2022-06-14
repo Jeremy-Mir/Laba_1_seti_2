@@ -2,14 +2,41 @@
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+
 namespace Laba_1_seti_2
 {
     class Program
     { // адрес и порт сервера, к которому будем подключаться
         static int port = 8005; // порт сервера
         static string address = "192.168.0.105"; // адрес сервера
+
+        
+
         static void Main(string[] args)
         {
+            UInt16 ModRTU_CRC(byte[] buf, int len)
+            {
+                UInt16 crc = 0xFFFF;
+
+                for (int pos = 0; pos < len; pos++)
+                {
+                    crc ^= (UInt16)buf[pos];
+
+                    for (int i = 8; i != 0; i--)
+                    {
+                        if ((crc & 0x0001) != 0)
+                        {
+                            crc >>= 1;
+                            crc ^= 0xA001;
+                        }
+                        else
+                            crc >>= 1;
+                    }
+                }
+
+                return crc;
+            }
             try
             {
                 IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(address), port);
@@ -34,18 +61,26 @@ namespace Laba_1_seti_2
                     
                     adres[j] = messageByte[j - 2];
                 }
-                int p = 69665;
-                adres[254] = (byte)11;
-                adres[255] = (byte)22;
+               
+                byte HighByte = (byte)(ModRTU_CRC(adres, 256) >> 8);
+                byte LowByte = (byte)(ModRTU_CRC(adres, 256) & 0xFF);
+                adres[254] = HighByte;
+                adres[255] = LowByte;
+                
                 /*for (int i= 0; i < messageByte.Length; i++)
                 {
                     
                     Console.WriteLine(messageByte[i]);
                     Console.WriteLine("i = " + i);
                 }*/
+
+
+                for(int i=0; i < 50; i++)
+                {
+                    socket.Send(adres);
+                    Thread.Sleep(10);
+                }
                 
-              
-                socket.Send(adres);
 
                 // получаем ответ
                 byte[] data = new byte[256]; // буфер для ответа
